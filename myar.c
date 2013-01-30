@@ -17,14 +17,14 @@ int main ( int argc, char *argv[])
 	if (argc <= 2) {
 		printf("Usage: %s key afile name ... \n", argv[0]);	
 		
-		}
-
+	}
 	if ((argc == 3) && strcmp(argv[1], "-v") == 0){
 		printf("-v option \n");
 		
-		}
-
-	printf("Hello World! \n");	
+	}
+	else if ((argc == 3) && strcmp(argv[1], "-t") == 0){
+		printf("Hello World! \n");	
+	}
 
 }
 
