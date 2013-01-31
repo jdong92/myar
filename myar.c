@@ -8,6 +8,7 @@
 
 #define SARMAG 8
 #define ARMAG "!<arch>\n"
+#define HEADERSIZE 61
 #define BLOCKSIZE 1024
 
 int main ( int argc, char *argv[])
@@ -15,8 +16,26 @@ int main ( int argc, char *argv[])
 
 	int inputFd;
 	ssize_t numRead;
-	char buffer[BLOCKSIZE + 1];
+	char buffer[BLOCKSIZE]; /*File buffer*/
 	char ARMAG_BUFFER[SARMAG + 1];
+
+	struct ar_hdr
+	{
+		char	ar_name[16];
+		char	ar_date[12];
+		char	ar_uid[6];
+		char	ar_gid[6];
+		char	ar_mode[8];
+		char	ar_size[10];
+		char	ar_fmag[2];
+	};
+
+	struct ar_hdr ar;
+
+
+	//char name[16];
+	//char date[12];
+	//char uid[6];
 
 	if (argc <= 2){
 
@@ -42,10 +61,25 @@ int main ( int argc, char *argv[])
 
 		}
 
-		numRead = read(inputFd, buffer, 16);
-		buffer[numRead] = '\0';
-		printf("%s \n", buffer);
+		while((numRead = read(inputFd, buffer, HEADERSIZE) == HEADERSIZE )){
+			
+			sscanf(buffer, "%s %s %s", ar.ar_name, ar.ar_date, ar.ar_uid);
 
+		}
+		printf(ar.ar_name);
+		//printf("Filename: %s \n", name);
+		//printf("File date: %s \n", date);
+		//printf("File Id: %s \n",uid);
+		/* Getting file name */
+
+		//numRead = read(inputFd, buffer, 16);
+		//buffer[numRead] = '\0';
+		//printf("%s \n", buffer);
+
+		//numRead = read(inputFd, buffer, 12);
+		//buffer[numRead] = '\0';
+		//printf("%s \n", buffer);
+	
 		
 
 		//while((numRead = read(inputFd, buffer, BLOCKSIZE)) > 0) {
