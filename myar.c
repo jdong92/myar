@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define SARMAG 8
+#define ARMAG "!<arch>\n"
 #define BLOCKSIZE 1024
 
 int main ( int argc, char *argv[])
@@ -14,6 +16,7 @@ int main ( int argc, char *argv[])
 	int inputFd;
 	ssize_t numRead;
 	char buffer[BLOCKSIZE + 1];
+	char ARMAG_BUFFER[SARMAG + 1];
 
 	if (argc <= 2){
 
@@ -30,13 +33,27 @@ int main ( int argc, char *argv[])
 			printf("Error opening file %s", argv[1]);
 			exit(-1);
 		}
+		/* ARMAG is the buffer */
+		numRead = read(inputFd, ARMAG_BUFFER, SARMAG);
+		ARMAG_BUFFER[numRead] = '\0';
+		if ((strcmp(ARMAG_BUFFER, ARMAG)) == -1){
 
-		while((numRead = read(inputFd, buffer, BLOCKSIZE)) > 0) {
-
-			buffer[numRead] = '\0';
-			printf("%s", buffer);
+			perror("Not an archive file \n");
 
 		}
+
+		numRead = read(inputFd, buffer, 16);
+		buffer[numRead] = '\0';
+		printf("%s \n", buffer);
+
+		
+
+		//while((numRead = read(inputFd, buffer, BLOCKSIZE)) > 0) {
+
+			//buffer[numRead] = '\0';
+			//printf("%s", buffer);
+
+		//}
 
 		if (numRead == -1){
 
