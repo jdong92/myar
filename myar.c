@@ -30,12 +30,9 @@ int main ( int argc, char *argv[])
 		char	ar_fmag[2];
 	};
 
-	struct ar_hdr ar;
-
-
-	//char name[16];
-	//char date[12];
-	//char uid[6];
+	struct ar_hdr *ar;
+	
+	ar = (struct ar_hdr *)malloc(sizeof(struct ar_hdr));
 
 	if (argc <= 2){
 
@@ -63,33 +60,14 @@ int main ( int argc, char *argv[])
 
 		while((numRead = read(inputFd, buffer, HEADERSIZE) == HEADERSIZE )){
 			
-			sscanf(buffer, "%s %s %s", ar.ar_name, ar.ar_date, ar.ar_uid);
+			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid,ar->ar_mode, ar->ar_size, ar->ar_fmag);
 
 		}
-		printf(ar.ar_name);
-		//printf("Filename: %s \n", name);
-		//printf("File date: %s \n", date);
-		//printf("File Id: %s \n",uid);
-		/* Getting file name */
 
-		//numRead = read(inputFd, buffer, 16);
-		//buffer[numRead] = '\0';
-		//printf("%s \n", buffer);
+		printf("%s \n",ar->ar_name);
 
-		//numRead = read(inputFd, buffer, 12);
-		//buffer[numRead] = '\0';
-		//printf("%s \n", buffer);
-	
-		
-
-		//while((numRead = read(inputFd, buffer, BLOCKSIZE)) > 0) {
-
-			//buffer[numRead] = '\0';
-			//printf("%s", buffer);
-
-		//}
-
-		if (numRead == -1){
+		//printf(ar[0].ar_name);
+			if (numRead == -1){
 
 			perror("Read Error");
 			exit(-1);
@@ -104,9 +82,6 @@ int main ( int argc, char *argv[])
 		}
 
 		exit(EXIT_SUCCESS);
-
-
-
 
 	}
 
