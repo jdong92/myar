@@ -8,7 +8,7 @@
 
 #define SARMAG 8
 #define ARMAG "!<arch>\n"
-#define HEADERSIZE 61
+#define HEADER_READ_SIZE 60
 #define BLOCKSIZE 1024
 
 int main ( int argc, char *argv[])
@@ -18,7 +18,7 @@ int main ( int argc, char *argv[])
 	ssize_t numRead;
 	char buffer[BLOCKSIZE]; /*File buffer*/
 	char ARMAG_BUFFER[SARMAG + 1];
-
+	unsigned long filesize;
 	struct ar_hdr
 	{
 		char	ar_name[16];
@@ -30,14 +30,10 @@ int main ( int argc, char *argv[])
 		char	ar_fmag[2];
 	};
 
-	struct ar_hdr *ar;
+	struct ar_hdr ar;
 	
-	ar = (struct ar_hdr *)malloc(sizeof(struct ar_hdr));
-
 	if (argc <= 2){
-
 		printf("Usage: %s key afile name ... \n", argv[0]);
-
 	}
 
 	/*Prints out the name of the file*/
@@ -49,41 +45,44 @@ int main ( int argc, char *argv[])
 			printf("Error opening file %s", argv[1]);
 			exit(-1);
 		}
-		/* ARMAG is the buffer */
-		numRead = read(inputFd, ARMAG_BUFFER, SARMAG);
-		ARMAG_BUFFER[numRead] = '\0';
-		if ((strcmp(ARMAG_BUFFER, ARMAG)) == -1){
 
-			perror("Not an archive file \n");
+		numRead = read(inputFd, buffer, 8);
+		if (strncmp(buffer, ARMAG, 8) != 0){
+
+			perror("Unknown archive file \n");
+			exit(-1);
 
 		}
-
-		while((numRead = read(inputFd, buffer, HEADERSIZE) == HEADERSIZE )){
+		int i = 0;
+		while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE){
 			
-			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid,ar->ar_mode, ar->ar_size, ar->ar_fmag);
+			sscanf(buffer, "%s %s %s %s %s %s %s", ar.ar_name, ar.ar_date, ar.ar_uid, ar.ar_gid, ar.ar_mode, ar.ar_size, ar.ar_fmag);
+			buffer[numRead] = '\0';
+			filesize = strtoul(ar.ar_size, NULL, 10);
 
-		}
-
-		printf("%s \n",ar->ar_name);
-
-		//printf(ar[0].ar_name);
-			if (numRead == -1){
-
-			perror("Read Error");
-			exit(-1);
-
-		}
-
-		if (close(inputFd) == -1){
-
-			perror("Error closing file");
-			exit(-1);
-
-		}
+			int i = 0;
+			while(ar.ar_name[i] != '/'){
+				printf("%c", ar.ar_name[i]);
+				i++;
+			}
+			printf("\n");
+		
+			lseek(inputFd, filesize, SEEK_CUR);
+			
+			if (filesize % 2 != 0){
+				lseek(inputFd, 1, SEEK_CUR);
+			}
+	
+		}	
 
 		exit(EXIT_SUCCESS);
 
+	}/* -t option */
+
+	if ((argc == 3) && strcmp(argv[1], "-v") == 0){
+			printf("-v");
+
 	}
 
-}
+}/* End Main */
 
