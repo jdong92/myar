@@ -9,21 +9,22 @@
 
 #define SARMAG 8
 #define ARMAG "!<arch>\n"
+#define ARFMAG "`\n"
 #define HEADER_READ_SIZE 60
 #define BLOCKSIZE 1024
 
 int main ( int argc, char *argv[])
 {
 
-	int inputFd;
+	int inputFd, archiveFd;
 	ssize_t numRead;
 	char buffer[BLOCKSIZE]; /*File buffer*/
-	char ARMAG_BUFFER[SARMAG + 1];
 	unsigned long filesize;
 	long date;
 	struct tm timestruct;
 	static char timestr[100];
-	struct stat fileStat;
+	struct stat *fileStat;
+	fileStat = (struct stat *)malloc(sizeof(struct stat));
 
 	struct ar_hdr
 	{
@@ -63,13 +64,13 @@ int main ( int argc, char *argv[])
 		int i = 0;
 		while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE){
 			
-			sscanf(buffer, "%s %s %s %s %s %s %s", ar.ar_name, ar.ar_date, ar.ar_uid, ar.ar_gid, ar.ar_mode, ar.ar_size, ar.ar_fmag);
+			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid, ar->ar_mode, ar->ar_size, ar->ar_fmag);
 			buffer[numRead] = '\0';
-			filesize = strtoul(ar.ar_size, NULL, 10);
+			filesize = strtoul(ar->ar_size, NULL, 10);
 
 			int i = 0;
-			while(ar.ar_name[i] != '/'){
-				printf("%c", ar.ar_name[i]);
+			while(ar->ar_name[i] != '/'){
+				printf("%c", ar->ar_name[i]);
 				i++;
 			}
 			printf("\n");
@@ -105,21 +106,21 @@ int main ( int argc, char *argv[])
 		int i = 0;
 		while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE){
 			
-			sscanf(buffer, "%s %s %s %s %s %s %s", ar.ar_name, ar.ar_date, ar.ar_uid, ar.ar_gid, ar.ar_mode, ar.ar_size, ar.ar_fmag);
+			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid, ar->ar_mode, ar->ar_size, ar->ar_fmag);
 			buffer[numRead] = '\0';
-			filesize = strtoul(ar.ar_size, NULL, 10);
+			filesize = strtoul(ar->ar_size, NULL, 10);
 			
-			printf("%s/%s   %s ", ar.ar_uid, ar.ar_gid, ar.ar_size);
+			printf("%s/%s   %s ", ar->ar_uid, ar->ar_gid, ar->ar_size);
 			//printf("%s ", ar.ar_date);
 
-			date = strtol(ar.ar_date, NULL, 10);
+			date = strtol(ar->ar_date, NULL, 10);
 			timestruct = *localtime(&date);
 			strftime(timestr, sizeof(timestr), "%b %e %H:%M %Y", &timestruct);
 			printf("%s ", timestr);
 		
 			int i = 0;
-			while(ar.ar_name[i] != '/'){
-				printf("%c", ar.ar_name[i]);
+			while(ar->ar_name[i] != '/'){
+				printf("%c", ar->ar_name[i]);
 				i++;
 			}
 			printf("\n");
@@ -137,28 +138,26 @@ int main ( int argc, char *argv[])
 
 	if ((argc == 4) && strcmp(argv[1], "q") == 0){
 		inputFd = open(argv[3], O_RDONLY);
+		archiveFd = open(argv[2], O_WRONLY);
 
-		if (stat(argv[3], &fileStat) < 0){
+		if (stat(argv[3], fileStat) < 0){
 			printf("Error opening file \n");
 			exit(-1);
+		
 		}
+		
+		char fileBuffer[fileStat->st_size];
 
-		strcpy(ar.ar_name,argv[3]);
-		ar->ar_size = fileStat.st_size;
-		/*
-		ar.ar_size = fileStat.st_size;
-		ar.ar_gid = fileStat.st_gid;
-		ar.ar_uid = fileStat.st_uid;
-		ar.ar_mode = fileStat.st_mode;
-		ar.ar_date = fileStat.st_mtime;
-		*/
-		printf("File Name: %c \n",ar.ar_name);
-		printf("File Size: %d \n",ar.ar_size);
-		printf("File Mode: %d \n",fileStat.st_mode);
-		printf("File Date: %d \n",fileStat.st_mtime);
-		printf("File GID: %d \n",fileStat.st_gid);
-		printf("File UID: %d \n",fileStat.st_uid);
+		strcpy(ar->ar_name,argv[3]);
+		snprintf(buffer, HEADER_READ_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld\n", ar->ar_name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size);
 
+		lseek(archiveFd, 0, SEEK_END);
+		write(archiveFd, buffer, HEADER_READ_SIZE);
+	
+		lseek(archiveFd, -1, SEEK_CUR);
+
+		read(inputFd, fileBuffer, fileStat->st_size);
+		numRead = write(archiveFd, fileBuffer, fileStat->st_size);		
 
 		if (inputFd == -1){
 			exit(-1);
