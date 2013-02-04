@@ -17,9 +17,10 @@
 int main ( int argc, char *argv[])
 {
 
-	int inputFd, archiveFd, numWritten = 0;
+	int inputFd, archiveFd, outputFd, numWritten = 0;
 	ssize_t numRead;
 	char buffer[BLOCKSIZE], header[HEADER_SIZE]; /*File buffer*/
+	char fileBuffer[BLOCKSIZE];
 	unsigned long filesize;
 	long date;
 	struct tm timestruct;
@@ -148,7 +149,6 @@ int main ( int argc, char *argv[])
 		
 		}
 		
-		char fileBuffer[fileStat->st_size];
 		lseek(archiveFd, 0, SEEK_END);
 
 		int len = strlen(argv[3]);
@@ -223,14 +223,17 @@ int main ( int argc, char *argv[])
 
 			if (strcmp(name, argv[3]) == 0){
 				
-				printf("File Exists\n");	
-			}
+				outputFd = open(argv[3], O_WRONLY | O_CREAT, strtoul(ar->ar_mode, NULL, 8));
+				numRead = read(inputFd, fileBuffer, filesize);
+				numWritten = write(outputFd, fileBuffer, filesize);
 
-			
+			}
+	
 			lseek(inputFd, filesize, SEEK_CUR);
 
 			if (filesize % 2 != 0){
 				lseek(inputFd, 1, SEEK_CUR);
+				printf("No entry %s in archive \n",argv[3]);
 			}
 
 		}
