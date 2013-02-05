@@ -1,3 +1,4 @@
+#define _BSD_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -6,6 +7,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
+#include <dirent.h>
 
 #define SARMAG 8
 #define ARMAG "!<arch>\n"
@@ -16,10 +19,9 @@
 
 int main ( int argc, char *argv[])
 {
-
 	int inputFd, archiveFd, outputFd, numWritten = 0;
 	ssize_t numRead;
-	char buffer[BLOCKSIZE], header[HEADER_SIZE]; /*File buffer*/
+	char buffer[BLOCKSIZE], header[HEADER_SIZE]; 
 	char fileBuffer[BLOCKSIZE];
 	unsigned long filesize;
 	long date;
@@ -42,7 +44,9 @@ int main ( int argc, char *argv[])
 
 	struct ar_hdr *ar;
 	ar = (struct ar_hdr *)malloc(sizeof(struct ar_hdr));
-	
+
+
+
 	if (argc <= 2){
 		printf("Usage: %s key afile name ... \n", argv[0]);
 	}
@@ -91,7 +95,7 @@ int main ( int argc, char *argv[])
 	}/* -t option */
 
 	/* VERBOSE OPTION */
-	if ((argc == 3) && strcmp(argv[1], "vt") == 0){
+	if ((argc == 3) && (strcmp(argv[1], "vt") == 0 || strcmp(argv[1], "tv") == 0)){
 
 		inputFd = open(argv[2], O_RDONLY);
 
@@ -139,64 +143,76 @@ int main ( int argc, char *argv[])
 		exit(EXIT_SUCCESS);
 	}/* End V OPTION */
 
-	if ((argc == 4) && strcmp(argv[1], "q") == 0){
-		inputFd = open(argv[3], O_RDONLY);
-		archiveFd = open(argv[2], O_WRONLY);
+	if ((argc >= 4) && strcmp(argv[1], "q") == 0){
 
-		if (stat(argv[3], fileStat) < 0){
-			printf("Error opening file \n");
-			exit(-1);
-		
-		}
-		
-		lseek(archiveFd, 0, SEEK_END);
-
-		int len = strlen(argv[3]);
-		memset(name, 0, 16);
 		int i = 0;
-		for (i = 0; i < 16; i++){
-				if (argv[3][i] == '\0'){
-					name[i] = '/';
-					break;
-				}else{
-				name[i] = argv[3][i];
-				}
+		for (i = 3; i < argc; i++){
+		
+			inputFd = open(argv[i], O_RDONLY); /* Regular file you want to append */
+			outputFd = open(argv[2], O_WRONLY); /* The actual archive file */
+
+			if (stat(argv[i], fileStat) < 0){
+				printf("Error Reading Stat\n");
+				exit(-1);
 			}
 
-		snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
+			/* TO DO */
+			if (errno == ENOENT){
+				printf("Creating file \n");
+			
+			}
 
-			numWritten = write(archiveFd, header, HEADER_SIZE);
+			/*CHECK ARCHIVE*/
+		
+			lseek(outputFd, 0, SEEK_END);
 
-		if (numWritten == -1){
+			//int len = strlen(argv[i]);
+			memset(name, 0, 16);
+			int j = 0;
+			for (j = 0; j < 16; j++){
+					if (argv[i][j] == '\0'){
+						name[j] = '/';
+						break;
+					}else{
+					name[j] = argv[i][j];
+					}
+				}
 
-			perror("Error writing file header.");
-			unlink(argv[2]);
-			exit(-1);
-		}
+			snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
+
+			numWritten = write(outputFd, header, HEADER_SIZE);
+
+			if (numWritten == -1){
+
+				perror("Error writing file header.");
+				unlink(argv[2]);
+				exit(-1);
+			}
 	
-		lseek(archiveFd, -1, SEEK_CUR);
+			lseek(outputFd, -1, SEEK_CUR);
 
-		while ((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0) {
+			while ((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0) {
 
-			numWritten = write(archiveFd, fileBuffer, numRead);
+				numWritten = write(outputFd, fileBuffer, numRead);
 
-		}
+			}
 	
-		if (inputFd == -1){
-			exit(-1);
-		}
+			if (inputFd == -1){
+				exit(-1);
+			}
 
-		close(inputFd);
-		close(archiveFd);
+			close(inputFd);
+			close(archiveFd);
+		}//end arg loop
 
 	}/* End Q OPTION */
 
-	if ((argc == 4) && strcmp(argv[1], "x") == 0){
-		
+	if ((argc >= 4) && strcmp(argv[1], "x") == 0){
+
 		inputFd = open(argv[2], O_RDONLY);
 
 		if (inputFd == -1){
-			perror("Error creating file.");
+			perror("Error opening file.");
 			exit(-1);
 		}
 
@@ -239,6 +255,150 @@ int main ( int argc, char *argv[])
 		}
 
 	}/* End X OPTION */
+	if ((argc == 4) && strcmp(argv[1], "d") == 0){
+
+			inputFd = open(argv[2], O_RDONLY);
+			outputFd = open("temp.a", O_WRONLY | O_CREAT);
+
+			/*
+
+			if (inputFd == -1){
+				perror("Error opening file.");
+				exit(-1);
+			}
+
+			if (outputFd == -1){
+				perror("Error creating file.");
+				exit(-1);
+			}
+
+			numRead = read(inputFd, buffer, SARMAG);
+			if (strncmp(buffer, ARMAG, SARMAG) != 0){
+				perror("Unknown archive file \n");
+				exit(-1);
+			}
+
+			lseek(outputFd, 0, SEEK_SET);
+			*/
+
+			//int len = strlen(argv[i]);
+
+			/* FILLING IN THE NAME VARIABLE USED TO COMPARE */
+
+
+			if (stat(argv[2], fileStat) < 0){
+				printf("Error Reading Stat\n");
+				exit(-1);
+			}
+
+			off_t archive_size = fileStat->st_size;
+
+			while((numRead = read(inputFd, buffer, archive_size)) == archive_size){
+
+				printf(buffer);
+
+				/*
+				memset(name, 0, 16);
+				int j = 0;
+				for (j = 0; j < 16; j++){
+						if (argv[3][j] == '\0'){
+							name[j] = '/';
+							break;
+						}else{
+						name[j] = argv[3][j];
+						}
+					}
+
+				snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
+				
+
+				if (strcmp(name, argv[3]) == 0){
+			
+					lseek(inputFd, filesize, SEEK_CUR)
+				}else{
+					numWritten = write(outputFd, header, HEADER_SIZE);
+					numRead = read(inputFd, fileBuffer, filesize);
+					numWritten = write(outputFd, fileBuffer, filesize);
+					lseek(inputFd, filesize, SEEK_CUR);
+			
+					if (filesize % 2 != 0){
+						lseek(inputFd, 1, SEEK_CUR);
+						close(inputFd);
+						close(archiveFd);
+
+					}
+				}
+				*/
+				
+			}//end while
+	}//end d option
+	if ((argc == 3) && strcmp(argv[1], "A") == 0){
+
+		DIR *dir = opendir(".");
+		struct dirent *entry = NULL;
+		outputFd = open(argv[2] , O_WRONLY);
+		lseek(outputFd, 0, SEEK_END);
+
+		while((entry = readdir (dir)))
+		{
+			if (stat(entry->d_name, fileStat) < 0)
+			{
+				printf("Error reading stats");
+				exit(-1);
+			}
+
+			if ((fileStat->st_mode & S_IFMT) == S_IFREG)
+			{
+
+				inputFd = open(entry->d_name, O_RDONLY);
+				memset(name, 0, 16);
+				int j = 0;
+				for (j = 0; j < 16; j++){
+					if (entry->d_name[j] == '\0'){
+						name[j] = '/';
+						break;
+					}else{
+						name[j] = entry->d_name[j];
+					}
+				}
+				
+				//printf("%s \n",name);
+				snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
+
+				numWritten = write(outputFd, header, HEADER_SIZE);
+
+				if (numWritten == -1){
+					perror("Error writing file header.");
+					exit(-1);
+				}
+
+				lseek(outputFd, -1, SEEK_CUR);
+
+				while((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0){
+					numWritten = write(outputFd, fileBuffer, numRead);
+					
+					if (numWritten == -1){
+						perror("Error writing file.");
+						exit(-1);
+					}
+				}
+				
+				//
+			}
+
+			
+
+		
+			//stat(entry->d_name, fileStat);
+			//if ((fileStat->st_mode & S_IFMT) == S_IFREG){
+				//printf("%s is a regular file\n", entry->d_name);
+			//}
+
+		}
+		closedir(dir);
+		return 0;
+	}
+
 
 
 }/* End Main */
