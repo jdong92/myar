@@ -50,10 +50,6 @@ int main ( int argc, char *argv[])
 	struct ar_hdr *ar;
 	ar = (struct ar_hdr *)malloc(sizeof(struct ar_hdr));
 
-	if (argc <= 2){
-		printf("Usage: %s key afile name ... \n", argv[0]);
-	}
-
 	/*Prints out the name of the file*/
 	if ((argc == 3) && strcmp(argv[1], "t") == 0){
 
@@ -95,10 +91,7 @@ int main ( int argc, char *argv[])
 
 		exit(EXIT_SUCCESS);
 
-	}/* -t option */
-
-	/* VERBOSE OPTION */
-	if ((argc == 3) && (strcmp(argv[1], "t") == 0){
+	}else if ((argc == 3) && (strcmp(argv[1], "t") == 0)){
 
 		inputFd = open(argv[2], O_RDONLY);
 
@@ -147,9 +140,8 @@ int main ( int argc, char *argv[])
 		}	
 
 		exit(EXIT_SUCCESS);
-	}/* End V OPTION */
 
-	if ((argc >= 3) && strcmp(argv[1], "q") == 0){
+	}else if ((argc >= 3) && strcmp(argv[1], "q") == 0){
 		
 		if (argc == 3){
 
@@ -163,90 +155,77 @@ int main ( int argc, char *argv[])
 				}
 				numWritten = write(outputFd, ARMAG, SARMAG);
 				printf("myar: creating %s \n", argv[2]);
+			}
+			close(outputFd);
+		}
+	
+		int i = 0;
+
+		for (i = 3; i < argc; i++){
+		
+			inputFd = open(argv[i], O_RDONLY); /* Regular file you want to append */
+			
+
+			if (stat(argv[i], fileStat) < 0){
+				printf("Error Reading Stat\n");
+				exit(-1);
+			}
+			outputFd = open(argv[2], O_WRONLY | O_RDONLY); /* The actual archive file */
+
+			/* TO DO */
+			if (errno == ENOENT){
+				outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666);
+				if (outputFd == -1){
+					perror("Error creating archive file");
+					exit(-1);
+				}
+				numWritten = write(outputFd, ARMAG, SARMAG);
+				printf("myar: creating %s \n", argv[2]);
 			
 			}
-		}else{	
-			int i = 0;
 
-			for (i = 3; i < argc; i++){
-		
-				inputFd = open(argv[i], O_RDONLY); /* Regular file you want to append */
-			
+			lseek(outputFd, 0, SEEK_END);
 
-				if (stat(argv[i], fileStat) < 0){
-					printf("Error Reading Stat\n");
-					exit(-1);
+			memset(name, 0, 16);
+			int j = 0;
+			for (j = 0; j < 16; j++){
+				if (argv[i][j] == '\0'){
+					name[j] = '/';
+					break;
+				}else{
+					name[j] = argv[i][j];
 				}
-				outputFd = open(argv[2], O_WRONLY | O_RDONLY); /* The actual archive file */
+			}
 
-				/* TO DO */
-				if (errno == ENOENT){
-					outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666);
-					if (outputFd == -1){
-						perror("Error creating archive file");
-						exit(-1);
-					}
-					numWritten = write(outputFd, ARMAG, SARMAG);
-					printf("myar: creating %s \n", argv[2]);
-			
-				}
+			snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
 
-				/*CHECK ARCHIVE*/
-				/*
-				lseek(outputFd, 0, SEEK_SET);
-				numRead = read(outputFd, buffer, SARMAG);
-				//lseek(outputFd, 0, SEEK_SET);
-				printf(buffer);
-				if (strncmp(buffer, ARMAG, SARMAG) != 0){
-					perror("Unknown archive file \n");
-					exit(-1);
-				}
-				*/
-				
-				lseek(outputFd, 0, SEEK_END);
+			numWritten = write(outputFd, header, HEADER_SIZE);
 
-				memset(name, 0, 16);
-				int j = 0;
-				for (j = 0; j < 16; j++){
-						if (argv[i][j] == '\0'){
-							name[j] = '/';
-							break;
-						}else{
-						name[j] = argv[i][j];
-						}
-				}
+			if (numWritten == -1){
 
-				snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
-
-				numWritten = write(outputFd, header, HEADER_SIZE);
-
-				if (numWritten == -1){
-
-					perror("Error writing file header.");
-					unlink(argv[2]);
-					exit(-1);
-				}
+				perror("Error writing file header.");
+				unlink(argv[2]);
+				exit(-1);
+			}
 	
-				lseek(outputFd, -1, SEEK_CUR);
+			lseek(outputFd, -1, SEEK_CUR);
 
-				while ((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0) {
+			while ((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0) {
 
-					numWritten = write(outputFd, fileBuffer, numRead);
+				numWritten = write(outputFd, fileBuffer, numRead);
 
-				}
+			}
 	
-				if (inputFd == -1){
-					exit(-1);
-				}
+			if (inputFd == -1){
+				exit(-1);
+			}
 
-				close(inputFd);
-				close(archiveFd);
-			}//end arg loop
-		}//end if statement
+			close(inputFd);
+			close(archiveFd);
 
-	}/* End Q OPTION */
+		}//end arg loop
 
-	if ((argc >= 4) && strcmp(argv[1], "x") == 0){
+	}else if ((argc >= 4) && strcmp(argv[1], "x") == 0){
 
 		inputFd = open(argv[2], O_RDONLY);
 
@@ -293,85 +272,7 @@ int main ( int argc, char *argv[])
 
 		}
 
-	}/* End X OPTION */
-	if ((argc == 4) && strcmp(argv[1], "d") == 0){
-
-			inputFd = open(argv[2], O_RDONLY);
-			outputFd = open("temp.a", O_WRONLY | O_CREAT);
-
-			/*
-
-			if (inputFd == -1){
-				perror("Error opening file.");
-				exit(-1);
-			}
-
-			if (outputFd == -1){
-				perror("Error creating file.");
-				exit(-1);
-			}
-
-			numRead = read(inputFd, buffer, SARMAG);
-			if (strncmp(buffer, ARMAG, SARMAG) != 0){
-				perror("Unknown archive file \n");
-				exit(-1);
-			}
-
-			lseek(outputFd, 0, SEEK_SET);
-			*/
-
-			//int len = strlen(argv[i]);
-
-			/* FILLING IN THE NAME VARIABLE USED TO COMPARE */
-
-
-			if (stat(argv[2], fileStat) < 0){
-				printf("Error Reading Stat\n");
-				exit(-1);
-			}
-
-			off_t archive_size = fileStat->st_size;
-
-			while((numRead = read(inputFd, buffer, archive_size)) == archive_size){
-
-				printf(buffer);
-
-				/*
-				memset(name, 0, 16);
-				int j = 0;
-				for (j = 0; j < 16; j++){
-						if (argv[3][j] == '\0'){
-							name[j] = '/';
-							break;
-						}else{
-						name[j] = argv[3][j];
-						}
-					}
-
-				snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
-				
-
-				if (strcmp(name, argv[3]) == 0){
-			
-					lseek(inputFd, filesize, SEEK_CUR)
-				}else{
-					numWritten = write(outputFd, header, HEADER_SIZE);
-					numRead = read(inputFd, fileBuffer, filesize);
-					numWritten = write(outputFd, fileBuffer, filesize);
-					lseek(inputFd, filesize, SEEK_CUR);
-			
-					if (filesize % 2 != 0){
-						lseek(inputFd, 1, SEEK_CUR);
-						close(inputFd);
-						close(archiveFd);
-
-					}
-				}
-				*/
-				
-			}//end while
-	}//end d option
-	if ((argc == 3) && strcmp(argv[1], "A") == 0)	{
+	}else if ((argc == 3) && strcmp(argv[1], "A") == 0)	{
 
 		DIR *dir = opendir(".");
 		struct dirent *entry = NULL;
@@ -434,9 +335,17 @@ int main ( int argc, char *argv[])
 			
 		}//while
 		
+	}else{
+
+		printf("\nUsage: %s key afile name ... \n", argv[0]);
+		printf("-q quickly append named files to archive \n");
+		printf("-x extract named file \n");
+		printf("-t print a concise table of contents of the archive \n");
+		printf("-v print a verbose table of content of the archive \n");
+		printf("-d delete named files from archive \n");
+		printf("-A quickly append all regular files in the current directory \n\n");
+
 	}
-
-
 
 }/* End Main */
 
