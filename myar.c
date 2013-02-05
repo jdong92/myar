@@ -332,14 +332,14 @@ int main ( int argc, char *argv[])
 				
 			}//end while
 	}//end d option
-	if ((argc == 3) && strcmp(argv[1], "A") == 0){
+	if ((argc == 3) && strcmp(argv[1], "A") == 0)	{
 
 		DIR *dir = opendir(".");
 		struct dirent *entry = NULL;
 		outputFd = open(argv[2] , O_WRONLY);
 		lseek(outputFd, 0, SEEK_END);
 
-		while((entry = readdir (dir)))
+		while((entry = readdir(dir)) != NULL)
 		{
 			if (stat(entry->d_name, fileStat) < 0)
 			{
@@ -347,56 +347,54 @@ int main ( int argc, char *argv[])
 				exit(-1);
 			}
 
-			if ((fileStat->st_mode & S_IFMT) == S_IFREG)
-			{
-
-				inputFd = open(entry->d_name, O_RDONLY);
-				memset(name, 0, 16);
-				int j = 0;
-				for (j = 0; j < 16; j++){
-					if (entry->d_name[j] == '\0'){
-						name[j] = '/';
-						break;
-					}else{
-						name[j] = entry->d_name[j];
-					}
-				}
-				
-				//printf("%s \n",name);
-				snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
-
-				numWritten = write(outputFd, header, HEADER_SIZE);
-
-				if (numWritten == -1){
-					perror("Error writing file header.");
-					exit(-1);
-				}
-
-				lseek(outputFd, -1, SEEK_CUR);
-
-				while((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0){
-					numWritten = write(outputFd, fileBuffer, numRead);
-					
-					if (numWritten == -1){
-						perror("Error writing file.");
-						exit(-1);
-					}
-				}
-				
-				//
+			if (S_ISDIR (fileStat->st_mode)){
+				continue;
+			}
+			if(strncmp(entry->d_name, ".", 1) == 0){
+				continue;
+			}	
+			if(strncmp(entry->d_name, argv[2], strlen(argv[2])) == 0){
+				continue;
 			}
 
+			memset(name, 0, 16);
+			int j = 0;
+			for (j = 0; j < 16; j++){
+				if (entry->d_name[j] == '\0'){
+					name[j] = '/';
+					break;
+				}else{
+					name[j] = entry->d_name[j];
+				}
+			}
+				
+			inputFd = open(entry->d_name, O_RDONLY);
+			snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
+
+			numWritten = write(outputFd, header, HEADER_SIZE);
+
+			if (numWritten == -1){
+				perror("Error writing file header.");
+				exit(-1);
+			}
+
+			lseek(outputFd, -1, SEEK_CUR);
+
+			while((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0){
+				numWritten = write(outputFd, fileBuffer, numRead);
+					
+				if (numWritten == -1){
+					perror("Error writing file.");
+					exit(-1);
+				}
+			}
+
+			if (fileStat->st_size % 2 != 0){
+				numWritten = write(outputFd, "\n", 1);
+			}
 			
-
+		}//while
 		
-			//stat(entry->d_name, fileStat);
-			//if ((fileStat->st_mode & S_IFMT) == S_IFREG){
-				//printf("%s is a regular file\n", entry->d_name);
-			//}
-
-		}
-		closedir(dir);
-		return 0;
 	}
 
 
