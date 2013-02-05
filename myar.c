@@ -9,6 +9,8 @@
 #include <time.h>
 #include <errno.h>
 #include <dirent.h>
+#define STR_SIZE sizeof("rwxrwxrwx")
+#define FP_SPECIAL 1
 
 #define SARMAG 8
 #define ARMAG "!<arch>\n"
@@ -16,6 +18,8 @@
 #define HEADER_SIZE 61
 #define HEADER_READ_SIZE 60
 #define BLOCKSIZE 1024
+
+char *file_perm_string(mode_t perm, int flags);
 
 int main ( int argc, char *argv[])
 {
@@ -29,6 +33,7 @@ int main ( int argc, char *argv[])
 	static char timestr[100];
 	struct stat *fileStat;
 	char name[16];
+	char *permission;
 	fileStat = (struct stat *)malloc(sizeof(struct stat));
 
 	struct ar_hdr
@@ -44,8 +49,6 @@ int main ( int argc, char *argv[])
 
 	struct ar_hdr *ar;
 	ar = (struct ar_hdr *)malloc(sizeof(struct ar_hdr));
-
-
 
 	if (argc <= 2){
 		printf("Usage: %s key afile name ... \n", argv[0]);
@@ -95,7 +98,7 @@ int main ( int argc, char *argv[])
 	}/* -t option */
 
 	/* VERBOSE OPTION */
-	if ((argc == 3) && (strcmp(argv[1], "vt") == 0 || strcmp(argv[1], "tv") == 0)){
+	if ((argc == 3) && (strcmp(argv[1], "t") == 0){
 
 		inputFd = open(argv[2], O_RDONLY);
 
@@ -116,8 +119,11 @@ int main ( int argc, char *argv[])
 			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid, ar->ar_mode, ar->ar_size, ar->ar_fmag);
 			buffer[numRead] = '\0';
 			filesize = strtoul(ar->ar_size, NULL, 10);
+
+			permission = file_perm_string(strtoul(ar->ar_mode, NULL, 10), 0); 
+			printf("%s ", permission);
 			
-			printf("%s/%s   %s ", ar->ar_uid, ar->ar_gid, ar->ar_size);
+			printf("%s/%s     %s ", ar->ar_uid, ar->ar_gid, ar->ar_size);
 			//printf("%s ", ar.ar_date);
 
 			date = strtol(ar->ar_date, NULL, 10);
@@ -143,67 +149,100 @@ int main ( int argc, char *argv[])
 		exit(EXIT_SUCCESS);
 	}/* End V OPTION */
 
-	if ((argc >= 4) && strcmp(argv[1], "q") == 0){
-
-		int i = 0;
-		for (i = 3; i < argc; i++){
+	if ((argc >= 3) && strcmp(argv[1], "q") == 0){
 		
-			inputFd = open(argv[i], O_RDONLY); /* Regular file you want to append */
+		if (argc == 3){
+
 			outputFd = open(argv[2], O_WRONLY); /* The actual archive file */
 
-			if (stat(argv[i], fileStat) < 0){
-				printf("Error Reading Stat\n");
-				exit(-1);
-			}
-
-			/* TO DO */
 			if (errno == ENOENT){
-				printf("Creating file \n");
+				outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666);
+				if (outputFd == -1){
+					perror("Error creating archive file");
+					exit(-1);
+				}
+				numWritten = write(outputFd, ARMAG, SARMAG);
+				printf("myar: creating %s \n", argv[2]);
 			
 			}
+		}else{	
+			int i = 0;
 
-			/*CHECK ARCHIVE*/
+			for (i = 3; i < argc; i++){
 		
-			lseek(outputFd, 0, SEEK_END);
+				inputFd = open(argv[i], O_RDONLY); /* Regular file you want to append */
+			
 
-			//int len = strlen(argv[i]);
-			memset(name, 0, 16);
-			int j = 0;
-			for (j = 0; j < 16; j++){
-					if (argv[i][j] == '\0'){
-						name[j] = '/';
-						break;
-					}else{
-					name[j] = argv[i][j];
+				if (stat(argv[i], fileStat) < 0){
+					printf("Error Reading Stat\n");
+					exit(-1);
+				}
+				outputFd = open(argv[2], O_WRONLY | O_RDONLY); /* The actual archive file */
+
+				/* TO DO */
+				if (errno == ENOENT){
+					outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666);
+					if (outputFd == -1){
+						perror("Error creating archive file");
+						exit(-1);
 					}
+					numWritten = write(outputFd, ARMAG, SARMAG);
+					printf("myar: creating %s \n", argv[2]);
+			
 				}
 
-			snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
+				/*CHECK ARCHIVE*/
+				/*
+				lseek(outputFd, 0, SEEK_SET);
+				numRead = read(outputFd, buffer, SARMAG);
+				//lseek(outputFd, 0, SEEK_SET);
+				printf(buffer);
+				if (strncmp(buffer, ARMAG, SARMAG) != 0){
+					perror("Unknown archive file \n");
+					exit(-1);
+				}
+				*/
+				
+				lseek(outputFd, 0, SEEK_END);
 
-			numWritten = write(outputFd, header, HEADER_SIZE);
+				memset(name, 0, 16);
+				int j = 0;
+				for (j = 0; j < 16; j++){
+						if (argv[i][j] == '\0'){
+							name[j] = '/';
+							break;
+						}else{
+						name[j] = argv[i][j];
+						}
+				}
 
-			if (numWritten == -1){
+				snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
 
-				perror("Error writing file header.");
-				unlink(argv[2]);
-				exit(-1);
-			}
+				numWritten = write(outputFd, header, HEADER_SIZE);
+
+				if (numWritten == -1){
+
+					perror("Error writing file header.");
+					unlink(argv[2]);
+					exit(-1);
+				}
 	
-			lseek(outputFd, -1, SEEK_CUR);
+				lseek(outputFd, -1, SEEK_CUR);
 
-			while ((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0) {
+				while ((numRead = read(inputFd, fileBuffer, BLOCKSIZE)) > 0) {
 
-				numWritten = write(outputFd, fileBuffer, numRead);
+					numWritten = write(outputFd, fileBuffer, numRead);
 
-			}
+				}
 	
-			if (inputFd == -1){
-				exit(-1);
-			}
+				if (inputFd == -1){
+					exit(-1);
+				}
 
-			close(inputFd);
-			close(archiveFd);
-		}//end arg loop
+				close(inputFd);
+				close(archiveFd);
+			}//end arg loop
+		}//end if statement
 
 	}/* End Q OPTION */
 
@@ -400,4 +439,24 @@ int main ( int argc, char *argv[])
 
 
 }/* End Main */
+
+char * /* Return ls(1)-style string for file permissions mask from "The Linux Programming Interface"*/
+file_perm_string(mode_t perm, int flags)
+{
+	static char str[STR_SIZE];
+	snprintf(str, STR_SIZE, "%c%c%c%c%c%c%c%c%c",
+	         (perm & S_IRUSR) ? 'r' : '-', (perm & S_IWUSR) ? 'w' : '-',
+	         (perm & S_IXUSR) ?
+	         (((perm & S_ISUID) && (flags & FP_SPECIAL)) ? 's' : 'x') :
+	         (((perm & S_ISUID) && (flags & FP_SPECIAL)) ? 'S' : '-'),
+	         (perm & S_IRGRP) ? 'r' : '-', (perm & S_IWGRP) ? 'w' : '-',
+	         (perm & S_IXGRP) ?
+	         (((perm & S_ISGID) && (flags & FP_SPECIAL)) ? 's' : 'x') :
+	         (((perm & S_ISGID) && (flags & FP_SPECIAL)) ? 'S' : '-'),
+	         (perm & S_IROTH) ? 'r' : '-', (perm & S_IWOTH) ? 'w' : '-',
+	         (perm & S_IXOTH) ?
+	         (((perm & S_ISVTX) && (flags & FP_SPECIAL)) ? 't' : 'x') :
+	         (((perm & S_ISVTX) && (flags & FP_SPECIAL)) ? 'T' : '-'));
+	return str;
+}
 
