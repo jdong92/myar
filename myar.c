@@ -23,10 +23,9 @@ char *file_perm_string(mode_t perm, int flags);
 
 int main ( int argc, char *argv[])
 {
-	int inputFd, archiveFd, outputFd, numWritten = 0;
+	int inputFd, outputFd, numWritten, total_written;
 	ssize_t numRead;
-	char buffer[BLOCKSIZE], header[HEADER_SIZE]; 
-	char fileBuffer[BLOCKSIZE];
+	char buffer[BLOCKSIZE], header[HEADER_SIZE], fileBuffer[BLOCKSIZE];
 	unsigned long filesize;
 	long date;
 	struct tm timestruct;
@@ -196,7 +195,8 @@ int main ( int argc, char *argv[])
 					name[j] = argv[i][j];
 				}
 			}
-
+			
+			/*Storing file infor to add */
 			snprintf(header, HEADER_SIZE, "%-16s%-12ld%-6d%-6d%-8o%-10ld%-2s", name, fileStat->st_mtime, fileStat->st_uid, fileStat->st_gid, fileStat->st_mode, fileStat->st_size,ARFMAG);
 
 			numWritten = write(outputFd, header, HEADER_SIZE);
@@ -221,7 +221,7 @@ int main ( int argc, char *argv[])
 			}
 
 			close(inputFd);
-			close(archiveFd);
+			close(outputFd);
 
 		}//end arg loop
 
@@ -335,6 +335,94 @@ int main ( int argc, char *argv[])
 			
 		}//while
 		
+	}else if ((argc >= 4) && strcmp(argv[1], "D") == 0){
+
+		inputFd = open(argv[2], O_RDONLY);
+		outputFd = open("test.a", O_WRONLY | O_CREAT, 0666);
+		fileBuffer[1];
+		total_written = 0;
+		//int keep = 1;
+
+		if (inputFd == -1){
+			perror("Error opening file.");
+			exit(-1);
+		}
+
+		numRead = read(inputFd, buffer, SARMAG);
+		if (strncmp(buffer, ARMAG, SARMAG) != 0){
+			perror("Unknown archive file \n");
+			exit(-1);
+		}
+
+		while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE)
+		{
+			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid,ar->ar_mode, ar->ar_size, ar->ar_fmag);
+			memset(name, 0, 16);
+
+			int i = 0;
+			while(ar->ar_name[i] != '/'){
+
+				name[i] = ar->ar_name[i];
+				i++;
+
+			}
+
+			filesize = strtoul(ar->ar_size, NULL, 10);
+
+			printf("Buffer: %s \n", buffer);
+			printf("Name: %s \n",name);
+			printf("argv: %s \n",argv[3]);
+
+			if (strcmp(name, argv[3]) == 0){
+				
+				printf("Delete file: %s \n", name);
+
+			}else{
+				printf("Keep file: %s \n", name);
+				numWritten = write(outputFd, buffer, HEADER_READ_SIZE);
+			
+				if (numWritten != HEADER_READ_SIZE){
+					perror("Error writing header.");
+					exit(-1);
+				}
+
+				/*
+				while ((numRead = read(inputFd, fileBuffer, filesize)) > 0 && total_written < filesize){
+
+					numWritten = write(outputFd, fileBuffer, filesize);
+					total_written++;
+
+				}
+				*/
+				/*
+				total_written = 0;	
+				while ((numRead = read(inputFd, fileBuffer, 1)) > 0 && total_written < filesize){
+					numWritten = write(outputFd, fileBuffer, numRead);
+					if (numWritten == -1){
+						perror("Cannot write archive file");
+						exit(-1);
+					}
+					total_written++;
+				}
+				
+
+				lseek(inputFd, -1, SEEK_CUR);
+				*/
+			}
+
+			lseek(inputFd, filesize, SEEK_CUR);	
+
+			if (filesize % 2 != 0){
+				lseek(inputFd, 1, SEEK_CUR);
+				//printf("No entry %s in archive \n",argv[3]);
+			}
+
+			
+
+		}
+
+
+
 	}else{
 
 		printf("\nUsage: %s key afile name ... \n", argv[0]);
@@ -346,6 +434,8 @@ int main ( int argc, char *argv[])
 		printf("-A quickly append all regular files in the current directory \n\n");
 
 	}
+
+
 
 }/* End Main */
 
