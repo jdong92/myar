@@ -34,6 +34,7 @@ int main ( int argc, char *argv[])
 	char name[16];
 	char *permission;
 	fileStat = (struct stat *)malloc(sizeof(struct stat));
+	off_t copied;
 
 	struct ar_hdr
 	{
@@ -339,8 +340,6 @@ int main ( int argc, char *argv[])
 
 		inputFd = open(argv[2], O_RDONLY);
 		outputFd = open("test.a", O_WRONLY | O_CREAT, 0666);
-		fileBuffer[1];
-		total_written = 0;
 		//int keep = 1;
 
 		if (inputFd == -1){
@@ -353,6 +352,8 @@ int main ( int argc, char *argv[])
 			perror("Unknown archive file \n");
 			exit(-1);
 		}
+
+		numWritten = write(outputFd, buffer, SARMAG);
 
 		while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE)
 		{
@@ -376,8 +377,10 @@ int main ( int argc, char *argv[])
 			if (strcmp(name, argv[3]) == 0){
 				
 				printf("Delete file: %s \n", name);
+				break;
 
 			}else{
+
 				printf("Keep file: %s \n", name);
 				numWritten = write(outputFd, buffer, HEADER_READ_SIZE);
 			
@@ -386,28 +389,12 @@ int main ( int argc, char *argv[])
 					exit(-1);
 				}
 
-				/*
-				while ((numRead = read(inputFd, fileBuffer, filesize)) > 0 && total_written < filesize){
+				while ((numRead = read(inputFd, fileBuffer, filesize)) > 0){
 
-					numWritten = write(outputFd, fileBuffer, filesize);
-					total_written++;
-
-				}
-				*/
-				/*
-				total_written = 0;	
-				while ((numRead = read(inputFd, fileBuffer, 1)) > 0 && total_written < filesize){
 					numWritten = write(outputFd, fileBuffer, numRead);
-					if (numWritten == -1){
-						perror("Cannot write archive file");
-						exit(-1);
-					}
-					total_written++;
+					
 				}
-				
-
-				lseek(inputFd, -1, SEEK_CUR);
-				*/
+			
 			}
 
 			lseek(inputFd, filesize, SEEK_CUR);	
