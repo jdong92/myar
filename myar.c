@@ -23,7 +23,7 @@ char *file_perm_string(mode_t perm, int flags);
 
 int main ( int argc, char *argv[])
 {
-	int inputFd, outputFd, numWritten, total_written;
+	int inputFd, outputFd, numWritten, total_written, keep;
 	ssize_t numRead;
 	char buffer[BLOCKSIZE], header[HEADER_SIZE], fileBuffer[BLOCKSIZE];
 	unsigned long filesize;
@@ -336,11 +336,11 @@ int main ( int argc, char *argv[])
 			
 		}//while
 		
-	}else if ((argc >= 4) && strcmp(argv[1], "D") == 0){
+	}else if ((argc >= 4) && strcmp(argv[1], "d") == 0){
 
 		inputFd = open(argv[2], O_RDONLY);
-		outputFd = open("test.a", O_WRONLY | O_CREAT, 0666);
-		//int keep = 1;
+		
+		fileBuffer[1];
 
 		if (inputFd == -1){
 			perror("Error opening file.");
@@ -351,6 +351,18 @@ int main ( int argc, char *argv[])
 		if (strncmp(buffer, ARMAG, SARMAG) != 0){
 			perror("Unknown archive file \n");
 			exit(-1);
+		}
+
+		unlink(argv[2]);
+		//printf(argv[2]);
+
+		outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666 | S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+
+		if (outputFd < 0){
+
+			perror("Error recreating archive file.");
+			exit(-1);
+
 		}
 
 		numWritten = write(outputFd, buffer, SARMAG);
@@ -370,6 +382,8 @@ int main ( int argc, char *argv[])
 
 			filesize = strtoul(ar->ar_size, NULL, 10);
 
+			keep = 1;
+
 			printf("Buffer: %s \n", buffer);
 			printf("Name: %s \n",name);
 			printf("argv: %s \n",argv[3]);
@@ -377,9 +391,12 @@ int main ( int argc, char *argv[])
 			if (strcmp(name, argv[3]) == 0){
 				
 				printf("Delete file: %s \n", name);
-				break;
+				keep = 0;
 
-			}else{
+			}
+
+
+			if (keep == 1){
 
 				printf("Keep file: %s \n", name);
 				numWritten = write(outputFd, buffer, HEADER_READ_SIZE);
@@ -389,26 +406,26 @@ int main ( int argc, char *argv[])
 					exit(-1);
 				}
 
-				while ((numRead = read(inputFd, fileBuffer, filesize)) > 0){
+				total_written = 0;
+				while ((numRead = read(inputFd, fileBuffer, 1)) > 0 && total_written < filesize){
 
 					numWritten = write(outputFd, fileBuffer, numRead);
+					total_written++;
 					
 				}
+				lseek(inputFd, -1, SEEK_CUR);
 			
-			}
+			}else{
 
 			lseek(inputFd, filesize, SEEK_CUR);	
 
+			}
 			if (filesize % 2 != 0){
 				lseek(inputFd, 1, SEEK_CUR);
-				//printf("No entry %s in archive \n",argv[3]);
+				
 			}
 
-			
-
-		}
-
-
+		}//end while loop
 
 	}else{
 
