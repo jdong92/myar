@@ -1,3 +1,14 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  myar.c
+ *    Description:  Archiving utility based on "ar"
+ *       Compiler:  icc
+ *         Author:  John Dong
+ *
+ * =====================================================================================
+ */
+
 #define _BSD_SOURCE
 #include <stdio.h>
 #include <string.h>
@@ -338,94 +349,95 @@ int main ( int argc, char *argv[])
 		
 	}else if ((argc >= 4) && strcmp(argv[1], "d") == 0){
 
-		inputFd = open(argv[2], O_RDONLY);
+		int i = 0;
+
+		for (i = 3; i < argc; i++){
+
+			inputFd = open(argv[2], O_RDONLY);
 		
-		fileBuffer[1];
+			fileBuffer[1];
 
-		if (inputFd == -1){
-			perror("Error opening file.");
-			exit(-1);
-		}
+			if (inputFd == -1){
+				perror("Error opening file.");
+				exit(-1);
+			}
 
-		numRead = read(inputFd, buffer, SARMAG);
-		if (strncmp(buffer, ARMAG, SARMAG) != 0){
-			perror("Unknown archive file \n");
-			exit(-1);
-		}
+			numRead = read(inputFd, buffer, SARMAG);
+			if (strncmp(buffer, ARMAG, SARMAG) != 0){
+				perror("Unknown archive file \n");
+				exit(-1);
+			}
 
-		unlink(argv[2]);
-		//printf(argv[2]);
+			unlink(argv[2]);
+			//printf(argv[2]);
 
-		outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666 | S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+			outputFd = open(argv[2], O_WRONLY | O_CREAT, 0666 | S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 
-		if (outputFd < 0){
+			if (outputFd < 0){
 
-			perror("Error recreating archive file.");
-			exit(-1);
-
-		}
-
-		numWritten = write(outputFd, buffer, SARMAG);
-
-		while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE)
-		{
-			sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid,ar->ar_mode, ar->ar_size, ar->ar_fmag);
-			memset(name, 0, 16);
-
-			int i = 0;
-			while(ar->ar_name[i] != '/'){
-
-				name[i] = ar->ar_name[i];
-				i++;
+				perror("Error recreating archive file.");
+				exit(-1);
 
 			}
 
-			filesize = strtoul(ar->ar_size, NULL, 10);
+			numWritten = write(outputFd, buffer, SARMAG);
 
-			keep = 1;
+			while((numRead = read(inputFd, buffer, HEADER_READ_SIZE)) == HEADER_READ_SIZE)
+			{
+				sscanf(buffer, "%s %s %s %s %s %s %s", ar->ar_name, ar->ar_date, ar->ar_uid, ar->ar_gid,ar->ar_mode, ar->ar_size, ar->ar_fmag);
+				memset(name, 0, 16);
 
-			printf("Buffer: %s \n", buffer);
-			printf("Name: %s \n",name);
-			printf("argv: %s \n",argv[3]);
+				int j = 0;
+				while(ar->ar_name[j] != '/'){
 
-			if (strcmp(name, argv[3]) == 0){
-				
-				printf("Delete file: %s \n", name);
-				keep = 0;
+					name[j] = ar->ar_name[j];
+					j++;
 
-			}
-
-
-			if (keep == 1){
-
-				printf("Keep file: %s \n", name);
-				numWritten = write(outputFd, buffer, HEADER_READ_SIZE);
-			
-				if (numWritten != HEADER_READ_SIZE){
-					perror("Error writing header.");
-					exit(-1);
 				}
 
-				total_written = 0;
-				while ((numRead = read(inputFd, fileBuffer, 1)) > 0 && total_written < filesize){
+				filesize = strtoul(ar->ar_size, NULL, 10);
 
-					numWritten = write(outputFd, fileBuffer, numRead);
-					total_written++;
+				keep = 1;
+
+				if (strcmp(name, argv[i]) == 0){
+				
+					//printf("Delete file: %s \n", name);
+					keep = 0;
+
+				}
+
+
+				if (keep == 1){
+
+					//printf("Keep file: %s \n", name);
+					numWritten = write(outputFd, buffer, HEADER_READ_SIZE);
+			
+					if (numWritten != HEADER_READ_SIZE){
+						perror("Error writing header.");
+						exit(-1);
+					}
+
+					total_written = 0;
+					while ((numRead = read(inputFd, fileBuffer, 1)) > 0 && total_written < filesize){
+
+						numWritten = write(outputFd, fileBuffer, numRead);
+						total_written++;
 					
-				}
-				lseek(inputFd, -1, SEEK_CUR);
+					}
+					lseek(inputFd, -1, SEEK_CUR);
 			
-			}else{
+				}else{
 
-			lseek(inputFd, filesize, SEEK_CUR);	
+				lseek(inputFd, filesize, SEEK_CUR);	
 
-			}
-			if (filesize % 2 != 0){
-				lseek(inputFd, 1, SEEK_CUR);
+				}
+				if (filesize % 2 != 0){
+					lseek(inputFd, 1, SEEK_CUR);
 				
-			}
+				}
 
-		}//end while loop
+			}//end while loop
+		}//for loop
 
 	}else{
 
