@@ -102,7 +102,7 @@ int main ( int argc, char *argv[])
 
 		exit(EXIT_SUCCESS);
 
-	}else if ((argc == 3) && (strcmp(argv[1], "t") == 0)){
+	}else if ((argc == 3) && (strcmp(argv[1], "v") == 0)){
 
 		inputFd = open(argv[2], O_RDONLY);
 
@@ -238,7 +238,7 @@ int main ( int argc, char *argv[])
 		}//end arg loop
 
 	}else if ((argc >= 4) && strcmp(argv[1], "x") == 0){
-
+		fileBuffer[1];
 		inputFd = open(argv[2], O_RDONLY);
 
 		if (inputFd == -1){
@@ -270,8 +270,12 @@ int main ( int argc, char *argv[])
 			if (strcmp(name, argv[3]) == 0){
 				
 				outputFd = open(argv[3], O_WRONLY | O_CREAT, strtoul(ar->ar_mode, NULL, 8));
-				numRead = read(inputFd, fileBuffer, filesize);
-				numWritten = write(outputFd, fileBuffer, filesize);
+				total_written = 0;
+				while ((numRead = read(inputFd, fileBuffer, 1)) > 0 && total_written < filesize){
+					numWritten = write(outputFd, fileBuffer, numRead);
+					total_written++;
+				}
+				lseek(inputFd, -1, SEEK_CUR);
 
 			}
 	
@@ -279,7 +283,7 @@ int main ( int argc, char *argv[])
 
 			if (filesize % 2 != 0){
 				lseek(inputFd, 1, SEEK_CUR);
-				printf("No entry %s in archive \n",argv[3]);
+				//printf("No entry %s in archive \n",argv[3]);
 			}
 
 		}

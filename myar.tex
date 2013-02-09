@@ -1,0 +1,239 @@
+\documentclass[letterpaper,10pt,titlepage]{article}
+
+\usepackage{graphicx}                                        
+
+\usepackage{amssymb}                                         
+\usepackage{amsmath}                                         
+\usepackage{amsthm}                                          
+
+\usepackage{alltt}                                           
+\usepackage{float}
+\usepackage{color}
+
+\usepackage{url}
+
+\usepackage{balance}
+\usepackage[TABBOTCAP, tight]{subfigure}
+\usepackage{enumitem}
+
+\usepackage{pstricks, pst-node}
+
+\usepackage{geometry}
+\geometry{textheight=10in, textwidth=7.5in}
+
+%random comment
+
+\newcommand{\cred}[1]{{\color{red}#1}}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+
+\usepackage{hyperref}
+
+\def\name{John Dong}
+
+%pull in the necessary preamble matter for pygments output
+\input{pygments.tex}
+
+%% The following metadata will show up in the PDF properties
+\hypersetup{
+  colorlinks = true,
+  urlcolor = black,
+  pdfauthor = {\name},
+  pdfkeywords = {cs311 ``operating systems'' files filesystem I/O},
+  pdftitle = {CS 311 Project 2: UNIX File I/O},
+  pdfsubject = {CS 311 Project 2},
+  pdfpagemode = UseNone
+}
+
+\parindent = 0.0 in
+\parskip = 0.2 in
+
+\begin{document}
+
+John Dong\newline
+February 5, 2013\newline
+CS311 HW2\newline
+\newline
+
+1. A design for your system, as well as places your implementation deviated from this design\newline
+\newline
+
+The myar.c program is an Unix archiving utility that takes command line arguments to either delete, append, extract, print the file name or a concise table of the archive. \newline
+
+For the design we are basically just writing and reading files. Since ar archive file have a magic string and a header where it specify the file size, permission, date and name. Using these information we can use the lseek to skip past the next file in the archive by using the filesize as an offset. In Unix ar files are identify with a header and a magic string which we have to write to in order for the ar utility to recognize. \newline
+
+2. A work log, detailing what you did when\newline
+\newline
+
+
+commit f5f94638c06f2de5e7fa17b670a1bd72b526a2be \newline
+Author: John Dong <jdong1992@gmail.com> \newline
+Date:   Tue Feb 5 18:48:57 2013 -0800 \newline
+\newline
+    Multiple argument for delete \newline
+\newline
+commit 5531df5d787892aa6140e0ce58555b6390b41a9e \newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Tue Feb 5 18:33:12 2013 -0800\newline
+\newline
+    Finished the delete option\newline
+\newline
+commit cbbb0158180cb870e281c28b91f03173c83fdabb\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Tue Feb 5 17:52:00 2013 -0800\newline
+\newline
+    Updated the delete option\newline
+\newline
+commit 7d8dfa432f90df77f90cdd207e37f49d51965f8f\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Tue Feb 5 15:12:36 2013 -0800\newline
+\newline
+    Working on the delete option\newline
+\newline
+commit ecaf04bf8b768addc99fd673a6763a559a7f9257\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Tue Feb 5 01:35:22 2013 -0800\newline
+\newline
+    Fixed the argv logic and parsing\newline
+\newline
+commit 59aa93026ab0e8e7292ffa5c24f237ec336d6\newline411
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Mon Feb 4 21:02:22 2013 -0800\newline
+
+    Updated the v option\newline
+
+commit 302b23fea1c7cb2d64d758e72159c75d957df4bd\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Mon Feb 4 19:23:17 2013 -0800\newline
+\newline
+    Finished the append all option\newline
+
+commit 65f494a9e03015d28a349156f5b3cda0b64126a0\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Mon Feb 4 18:58:36 2013 -0800\newline
+\newline
+    Working delete and append all regular files\newline
+
+commit ba02dd4986833d97ee6d108601df6b633e0d7ae3\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Sun Feb 3 17:45:37 2013 -0800\newline
+
+    Extraction barely working\newline
+
+commit 40032088bcaf82c72b045cdcfc4d5a912f1c7d54\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Sun Feb 3 16:50:04 2013 -0800\newline
+
+    Working on the extraction feature\newline
+
+commit 518399446410d2b3dd4a7c51a183a20400f3cae9\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Sun Feb 3 13:24:51 2013 -0800\newline
+
+    Append option barely working\newline
+
+commit 0205ab1105a311eb51cb8bdb0647261303f9b7f6\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Sun Feb 3 10:30:53 2013 -0800\newline
+
+    Working on option q\newline
+
+commit 8904286c5f6d5056337003c08d720a6b9e29e342\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Sat Feb 2 14:02:35 2013 -0800\newline
+
+    Finished T option\newline
+
+commit 17e5b6e998b1b169aba4f30c7fef97219f7536e7\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Thu Jan 31 11:09:34 2013 -0800\newline
+
+    Update README.md\newline
+\newline
+commit f609d400dd1113b5228feff5890c968705b198ea\newline
+Author: John Dong <jdong1992@gmail.com>\newline
+Date:   Thu Jan 31 11:08:49 2013 -0800\newline
+
+    Update makefile\newline
+
+commit 425a557bddf4a98b88d8c69d65b3b5e2a4546541\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 22:08:58 2013 -0800\newline
+
+    Allocated memory for the struct\newline
+
+commit cfa80b4393c30f8bfcc080148ceecf39d84c66dc\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 21:34:23 2013 -0800\newline
+
+    Add ar_hdr struct\newline
+
+commit 17747e8d1eb6c36073cf9ee6412aa3c1cb9f3c9a\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 19:35:26 2013 -0800\newline
+
+    Added magic string checking\newline
+
+commit 12f2067defc68df0b2152115f1054b84c7edf9ba\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 18:53:01 2013 -0800\newline
+
+    Working on the -t option\newline
+
+commit 5b10a20a632eaa7abc253734bf7d40e4aabf6469\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 00:56:05 2013 -0800\newline
+\newline
+    Added -t option\newline
+
+commit 68f1757aabdd49d6edb1857a806c3005def88789\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 00:52:03 2013 -0800\newline
+
+    Added printf\newline
+
+commit cf68d970ae9da09fa1715e0b8d96de6ea6ab675b\newline
+Merge: 769518a 4a7cda1\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 00:39:17 2013 -0800\newline
+
+    Merge https://github.com/jdong92/myar\newline
+
+commit 769518a15a499fcd89e0f6f609d83f5aa8afde91\newline
+Author: John Dong <dongj@os-class.engr.oregonstate.edu>\newline
+Date:   Wed Jan 30 00:39:01 2013 -0800\newline
+
+    First Commit\newline
+
+commit 4a7cda12eabe9faf00671b6c721d722a4494f00b\newline
+Author: jdong92 <jdong1992@gmail.com>\newline
+Date:   Wed Jan 30 00:36:57 2013 -0800\newline
+
+    Initial commit\newline
+
+\newline
+
+3. Any challenges you overcame in completing this assignment\newline
+\newline
+
+The delete option was very problematic because I couldn't get it to write the actual file data to the new file but I can write the file header. \newline
+
+4. Answers to the following questions:\newline
+a. Shat do you think the main point of this assignment is?\newline
+\newline
+To help students get familar using low-level system calls like lseek, write, and read.\newline
+\newline
+b. How did you ensure your solution was correct? Testing details, for instance.\newline
+\newline
+I made sure that most of the syntax like deleting, appending and extracting an archive file in myar will be readable and work in the actual ar utility.\newline
+\newline
+c. What did you learn?\newline
+\newline
+I learned a lot about Unix File I/O and getting comfortable with low-level system calls in C.\newline
+
+
+
+
+%input the pygmentized output of mt19937ar.c, using a (hopefully) unique name
+%this file only exists at compile time. Feel free to change that.
+input{__myar.c.tex}
+\end{document}
