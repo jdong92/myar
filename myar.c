@@ -8,6 +8,8 @@
  *
  * =====================================================================================
  */
+ 
+ //I know the code is pretty disgusting
 
 #define _BSD_SOURCE
 #include <stdio.h>
